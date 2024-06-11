@@ -4,11 +4,14 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.vocabulary.DCTerms;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
 import org.apache.jena.vocabulary.XSD;
@@ -94,27 +97,25 @@ public class PropertyShapeDocumentationBuilder {
 	}
 	
 	public static String selectLabel(PropertyShape prop, Model owlModel, String lang) {
-		// if we have a sh:name, take it
-		if(prop.getShName() != null) {
-			return render(prop.getShName(), true);
-		} else if(prop.getShPath().isURIResource()) {
-			// otherwise if we have rdfs:label on the property, take it
-			return render(ConstraintValueReader.readLiteralInLang(owlModel.getResource(prop.getShPath().getURI()), RDFS.label, lang), true);
-		} else {
-			return null;
-		}
+		String shName = render(prop.getShName(), true); //property shape's sh:name
+		String rdfsLabel = render(ConstraintValueReader.readLiteralInLang(owlModel.getResource(prop.getShPath().getURI()), RDFS.label, lang), true); //property label from ontology (if provided)
+		String dctTitle = render(ConstraintValueReader.readLiteralInLang(prop.getResource(), DCTerms.title, lang), true); //property shape's dct:title
+
+		String additionalLabel = Stream.of(rdfsLabel, dctTitle)
+																	 .filter(Objects::nonNull)
+																	 .collect(Collectors.joining(", "));
+
+		return additionalLabel.isEmpty() ? shName : shName + " (" + additionalLabel + ")";
 	}
 	
 	public static String selectDescription(PropertyShape prop, Model owlModel, String lang) {
-		// if we have a sh:description, take it
-		if(prop.getShDescription() != null) {
-			return render(prop.getShDescription(), true);
-		} else if(prop.getShPath().isURIResource()) {
-			// otherwise if we have rdfs:comment on the property, take it
-			return render(ConstraintValueReader.readLiteralInLang(owlModel.getResource(prop.getShPath().getURI()), RDFS.comment, lang), true);
-		} else {
-			return null;
-		}
+		String shDescription = render(prop.getShDescription(), true); //property shape's sh:description
+		String rdfsComment = render(ConstraintValueReader.readLiteralInLang(owlModel.getResource(prop.getShPath().getURI()), RDFS.comment, lang), true); //property description from ontology (if provided)
+		String dctDescription = render(ConstraintValueReader.readLiteralInLang(prop.getResource(), DCTerms.description, lang), true); //property shape's dct:description
+
+		return Stream.of(shDescription, rdfsComment, dctDescription)
+								 .filter(Objects::nonNull)
+								 .collect(Collectors.joining("<br/> - <br/>"));
 	}
 	
 	public static String render(List<? extends RDFNode> list, boolean plainString) {
