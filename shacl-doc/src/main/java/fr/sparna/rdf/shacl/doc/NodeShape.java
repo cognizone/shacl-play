@@ -2,14 +2,16 @@ package fr.sparna.rdf.shacl.doc;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.RDFList;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.vocabulary.DCTerms;
 import org.apache.jena.vocabulary.OWL;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
@@ -42,7 +44,14 @@ public class NodeShape {
 		
 		if(result == null) {
 			result = ModelRenderingUtils.render(this.getRdfsLabel(lang), true);
-		}				
+		}
+
+		String dctTitle = ModelRenderingUtils.render(ModelReadingUtils.readLiteralInLang(nodeShape, DCTerms.title, lang), true);
+
+		result = Stream.of(result, dctTitle)
+					.filter(Objects::nonNull)
+					.reduce((s1, s2) -> s1 + " (" + s2 + ")")
+					.orElse(result);
 		
 		if(result == null && this.getShTargetClass() != null) {
 			// otherwise if we have skos:prefLabel on the class, take it
@@ -68,7 +77,12 @@ public class NodeShape {
 		if(result == null) {
 			result = ModelRenderingUtils.render(this.getRdfsComment(lang), true);
 		}
-		
+
+		String dctDescription = ModelRenderingUtils.render(ModelReadingUtils.readLiteralInLang(nodeShape, DCTerms.description, lang), true);
+		result = Stream.of(result, dctDescription)
+									 .filter(Objects::nonNull)
+									 .collect(Collectors.joining("<br/> - <br/>"));
+
 		if(result == null && this.getShTargetClass() != null) {
 			// otherwise if we have skos:definition on the class, take it
 			result = ModelRenderingUtils.render(ModelReadingUtils.readLiteralInLang(owlModel.getResource(this.getShTargetClass().getURI()), SKOS.definition, lang), true);
