@@ -2,14 +2,17 @@ package fr.sparna.rdf.shacl.doc;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.RDFList;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.vocabulary.DCTerms;
 import org.apache.jena.vocabulary.RDFS;
 import org.apache.jena.vocabulary.SKOS;
 import org.topbraid.shacl.vocabulary.SH;
@@ -44,7 +47,13 @@ public class PropertyShape {
 	}
 	
 	public String getDisplayLabel(Model owlModel, String lang) {
-		String result = ModelRenderingUtils.render(this.getShName(lang), true);
+		String shName = ModelRenderingUtils.render(this.getShName(lang), true); //property shape's sh:name
+		String dctTitle = ModelRenderingUtils.render(ModelReadingUtils.readLiteralInLang(this.getResource(), DCTerms.title, lang), true); //property shape's dct:title
+
+		String result = Stream.of(shName, dctTitle)
+					.filter(Objects::nonNull)
+					.reduce((s1, s2) -> s1 + " (" + s2 + ")")
+					.orElse(shName);
 		
 		if(result == null && this.getShPath().isURIResource()) {
 			// otherwise if we have skos:prefLabel on the property, take it
@@ -65,7 +74,12 @@ public class PropertyShape {
 	}
 	
 	public String getDisplayDescription(Model owlModel, String lang) {
-		String result = ModelRenderingUtils.render(this.getShDescription(lang), true);
+		String shDescription = ModelRenderingUtils.render(this.getShDescription(lang), true); //property shape's sh:description
+		String dctDescription =ModelRenderingUtils.render(ModelReadingUtils.readLiteralInLang(this.getResource(), DCTerms.description, lang), true); //property shape's dct:description
+
+		String result = Stream.of(shDescription, dctDescription)
+													.filter(Objects::nonNull)
+													.collect(Collectors.joining("<br/> - <br/>"));
 		
 		if(result == null && this.getShPath().isURIResource()) {
 			// otherwise if we have skos:definition on the property, take it
