@@ -2,9 +2,13 @@ package fr.sparna.rdf.shacl.doc.read;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.vocabulary.DCTerms;
 import org.apache.jena.vocabulary.RDFS;
 
 import fr.sparna.rdf.shacl.doc.ConstraintValueReader;
@@ -28,11 +32,11 @@ public class ShapesDocumentationSectionBuilder {
 		// URI
 		currentSection.setUri(nodeShape.getShortForm());
 		
-		// title : either rdfs:label or the URI short form
-		currentSection.setTitle((nodeShape.getRdfsLabel() != null && !nodeShape.getRdfsLabel().isEmpty()) ? nodeShape.getRdfsLabel() : nodeShape.getShortForm());
+		// title : either rdfs:label or dct:title or both (concatenated) or the URI short form
+		currentSection.setTitle(getTitle(nodeShape, lang));
 		
-		// rdfs:comment
-		currentSection.setDescription(nodeShape.getRdfsComment());
+		// description: either rdfs:comment or dct:description or both (concatenated)
+		currentSection.setDescription(getDescription(nodeShape, lang));
 		
 		// sh:targetClass
 		if(nodeShape.getShTargetClass() != null) {
@@ -83,5 +87,29 @@ public class ShapesDocumentationSectionBuilder {
 
 		return currentSection;
 	}
-	
+
+	private static String getDescription(NodeShape nodeShape, String lang) {
+		String rdfsComment = nodeShape.getRdfsComment();
+		String dctDescription = PropertyShapeDocumentationBuilder.render(ConstraintValueReader.readLiteralInLang(nodeShape.getNodeShape(), DCTerms.description, lang), true);
+		return Stream.of(rdfsComment, dctDescription)
+								 .filter(Objects::nonNull)
+								 .collect(Collectors.joining("<br/> - <br/>"));
+	}
+
+	private static String getTitle(NodeShape nodeShape, String lang) {
+		String rdfsLabel = nodeShape.getRdfsLabel();
+		String dctTitle = PropertyShapeDocumentationBuilder.render(ConstraintValueReader.readLiteralInLang(nodeShape.getNodeShape(), DCTerms.title, lang), true);
+
+		String title;
+		if (StringUtils.isEmpty(rdfsLabel) && StringUtils.isEmpty(dctTitle)) {
+			title = nodeShape.getShortForm();
+		}
+		else if (!StringUtils.isEmpty(dctTitle)) {
+			title = rdfsLabel + " (" + dctTitle + ")";
+		}
+		else {
+			title = rdfsLabel;
+		}
+		return title;
+	}
 }
