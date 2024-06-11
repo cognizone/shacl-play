@@ -1000,7 +1000,8 @@
 			</td>
 			<!-- Description properties -->
 			<td class="sp_table_propertyshapes_col_description">
-				<xsl:value-of select="description" />
+				<!--  disable output escaping so that HTML is preserved -->
+				<xsl:value-of select="description" disable-output-escaping="yes" />
 				
 			</td>
 		</tr>
