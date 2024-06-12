@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.RDFNode;
@@ -49,7 +50,7 @@ public class NodeShape {
 		String dctTitle = ModelRenderingUtils.render(ModelReadingUtils.readLiteralInLang(nodeShape, DCTerms.title, lang), true);
 
 		result = Stream.of(result, dctTitle)
-					.filter(Objects::nonNull)
+					.filter(StringUtils::isNotEmpty)
 					.reduce((s1, s2) -> s1 + " (" + s2 + ")")
 					.orElse(result);
 		
@@ -80,7 +81,7 @@ public class NodeShape {
 
 		String dctDescription = ModelRenderingUtils.render(ModelReadingUtils.readLiteralInLang(nodeShape, DCTerms.description, lang), true);
 		result = Stream.of(result, dctDescription)
-									 .filter(Objects::nonNull)
+									 .filter(StringUtils::isNotEmpty)
 									 .collect(Collectors.joining("<br/> - <br/>"));
 
 		if(result == null && this.getShTargetClass() != null) {
